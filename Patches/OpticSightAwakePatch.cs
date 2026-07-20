@@ -18,18 +18,13 @@ namespace SPTScopeTweaks.Patches
         [PatchPostfix]
         private static void PatchPostfix(OpticSight __instance)
         {
-            bool scopeExists = ScopeMaterialData.OpticMaterialData.ContainsKey(__instance);
-
             Renderer opticRenderer = __instance.LensRenderer;
             Material opticMaterial = opticRenderer.material;
 
             Vector4 _scales = opticMaterial.GetVector(ScopeMaterialData.ScalesKeyword);
 
-            if (!scopeExists)
-            {
-                ScopeMaterialData scopeMaterialData = new ScopeMaterialData() { _Scales = _scales };
-                ScopeMaterialData.OpticMaterialData.Add(__instance, scopeMaterialData);
-            }
+            ScopeMaterialData scopeMaterialData = new ScopeMaterialData() { _Scales = _scales };
+            ScopeMaterialData.OpticMaterialData[__instance] = scopeMaterialData;
 
             ScopeHelper.UpdateScopeEyeRelief(__instance, Plugin.EyeReliefMultiplier.Value);
         }

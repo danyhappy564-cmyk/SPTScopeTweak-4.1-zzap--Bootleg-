@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace SPTScopeTweaks
 {
-    [BepInPlugin("com.pein.scopetweak", "Eye Relief Tweak", "1.0.0")]
+    [BepInPlugin("com.pein.scopetweak", "Eye Relief Tweak", "1.0.1")]
     public class Plugin : BaseUnityPlugin
     {
         internal static new ManualLogSource Logger;
