@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace SPTScopeTweaks
 {
-    [BepInPlugin("com.pein.scopetweak", "Eye Relief Tweak", "1.0.1")]
+    [BepInPlugin("com.pein.scopetweak", "Eye Relief Tweak", "1.1.0")]
     public class Plugin : BaseUnityPlugin
     {
         internal static new ManualLogSource Logger;
@@ -23,6 +23,11 @@ namespace SPTScopeTweaks
             Logger = base.Logger;
 
             new OpticSightAwakePatch().Enable();
+            // OnGameEndedPatch existed but was never enabled, so OpticMaterialData kept
+            // every OpticSight the session had ever seen - destroyed Unity objects
+            // included - and the SettingChanged handler below walked the whole pile on
+            // each config change. Clearing it at raid end is what the patch is for.
+            new OnGameEndedPatch().Enable();
 
             EyeReliefMultiplier = Config.Bind(
                 "General",

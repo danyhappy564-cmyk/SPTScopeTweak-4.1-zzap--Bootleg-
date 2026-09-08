@@ -1,118 +1,82 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net472</TargetFramework>
+        <!-- netstandard2.1, matching what SPT 4.1 client plugins target. Was net472. -->
+        <TargetFramework>netstandard2.1</TargetFramework>
         <AssemblyName>SPTScopeTweaks</AssemblyName>
         <Product>Scope Tweaks</Product>
-        <Version>1.0.1</Version>
+        <Version>1.1.0</Version>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
-        <RestoreAdditionalProjectSources>
-            https://api.nuget.org/v3/index.json;
-            https://nuget.bepinex.dev/v3/index.json;
-            https://nuget.samboy.dev/v3/index.json
-        </RestoreAdditionalProjectSources>
         <RootNamespace>SPTScopeTweaks</RootNamespace>
+        <OutputPath>bin\$(Configuration)\</OutputPath>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    </PropertyGroup>
+
+    <!--
+      Every reference used to be a hardcoded "..\..\" path, which only resolves when the
+      repository sits exactly two levels inside an SPT install; anywhere else the build
+      failed on every one of them. SptRoot replaces that and can be overridden with
+      -p:SptRoot=... or an SptRoot environment variable. SPTPath is kept as an alias
+      because the old copy target read it.
+    -->
+    <PropertyGroup>
+        <SptRoot Condition=" '$(SptRoot)' == '' And '$(SPTPath)' != '' ">$(SPTPath)</SptRoot>
+        <SptRoot Condition=" '$(SptRoot)' == '' ">E:\SPT 4.1</SptRoot>
+        <SPTPath>$(SptRoot)</SPTPath>
+        <SptManaged>$(SptRoot)\EscapeFromTarkov_Data\Managed</SptManaged>
+        <SptBepInEx>$(SptRoot)\BepInEx</SptBepInEx>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all"/>
-        <PackageReference Include="BepInEx.Core" Version="5.*"/>
-        <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*"/>
-        <PackageReference Include="UnityEngine.Modules" Version="2019.4.39" IncludeAssets="compile"/>
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-        <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Reference Include="Assembly-CSharp">
-            <HintPath>..\..\EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll</HintPath>
+        <!--
+          BepInEx and UnityEngine came from NuGet: BepInEx.Core off nuget.bepinex.dev,
+          which is not reachable from every network, and UnityEngine.Modules pinned to
+          2019.4.39 - three major Unity versions behind the 2022 runtime EFT 0.16 ships.
+          The install already has the exact assemblies the game will load, so use those.
+        -->
+        <Reference Include="BepInEx">
+            <HintPath>$(SptBepInEx)\core\BepInEx.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="0Harmony">
+            <HintPath>$(SptBepInEx)\core\0Harmony.dll</HintPath>
             <Private>False</Private>
         </Reference>
         <Reference Include="spt-reflection">
-            <HintPath>..\..\BepInEx\plugins\spt\spt-reflection.dll</HintPath>
+            <HintPath>$(SptBepInEx)\plugins\spt\spt-reflection.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Assembly-CSharp">
+            <HintPath>$(SptManaged)\Assembly-CSharp.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="UnityEngine">
+            <HintPath>$(SptManaged)\UnityEngine.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule">
+            <HintPath>$(SptManaged)\UnityEngine.CoreModule.dll</HintPath>
             <Private>False</Private>
         </Reference>
     </ItemGroup>
 
-    <ItemGroup>
-        <Reference Update="mscorlib">
-            <Private>False</Private>
-        </Reference>
-    </ItemGroup>
+    <!-- Fail with the reason rather than with a wall of "type or namespace not found". -->
+    <Target Name="EnsureSptRoot" BeforeTargets="BeforeBuild;ResolveAssemblyReferences">
+        <Error Condition="!Exists('$(SptManaged)\Assembly-CSharp.dll')"
+               Text="SptRoot '$(SptRoot)' does not look like an SPT install (missing EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll). Pass -p:SptRoot=... or set the SptRoot environment variable." />
+    </Target>
 
-    <ItemGroup>
-        <Reference Update="System">
-            <Private>False</Private>
-        </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Reference Update="System.Core">
-            <Private>False</Private>
-        </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Reference Update="System.Data">
-            <Private>False</Private>
-        </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Reference Update="System.Drawing">
-            <Private>False</Private>
-        </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Reference Update="System.IO.Compression.FileSystem">
-            <Private>False</Private>
-        </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Reference Update="System.Numerics">
-            <Private>False</Private>
-        </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Reference Update="System.Runtime.Serialization">
-            <Private>False</Private>
-        </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Reference Update="System.Xml">
-            <Private>False</Private>
-        </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Reference Update="System.Xml.Linq">
-            <Private>False</Private>
-        </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Include="SPTScopeTweaks.csproj.user"/>
-    </ItemGroup>
-
-    <Target Name="CopyToSPT" AfterTargets="AfterBuild" Condition="'$(SPTPath)' != ''">
+    <!--
+      Was conditioned on SPTPath being set, so a plain build silently installed nothing.
+      SptRoot always has a value now, so this runs whenever that path exists.
+    -->
+    <Target Name="CopyToSPT" AfterTargets="Build" Condition="Exists('$(SptRoot)')">
         <PropertyGroup>
-            <ModsDirectoryPath>$(SPTPath)\BepInEx\plugins\$(MSBuildProjectName)</ModsDirectoryPath>
+            <ModsDirectoryPath>$(SptBepInEx)\plugins\$(MSBuildProjectName)</ModsDirectoryPath>
         </PropertyGroup>
-
-        <Message Importance="high" Text="Copying mods to $(ModsDirectoryPath)"/>
-        <ItemGroup>
-            <FilesToCopy Include="$(OutputPath)$(TargetName)$(TargetExt)"/>
-            <FilesToCopy Include="$(OutputPath)$(TargetName).pdb"/>
-            <FilesToCopy Include="Resources\**\*"/>
-        </ItemGroup>
-        <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(ModsDirectoryPath)\%(RecursiveDir)" ContinueOnError="false"/>
-        <Message Importance="high" Text="Files copied"/>
+        <MakeDir Directories="$(ModsDirectoryPath)" />
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsDirectoryPath)" />
+        <Message Importance="high" Text="Installed to $(ModsDirectoryPath)" />
     </Target>
 </Project>
